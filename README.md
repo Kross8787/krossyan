@@ -1,2 +1,778 @@
-# krossyan
-A simple game
+```html
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>文字大亂鬥！全面進化版</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0f131f;
+  --panel: #182032;
+  --line: #2e3b54;
+  --text: #f4f6ff;
+  --muted: #9aa8c7;
+  --pink: #ff5277;
+  --blue: #40b5ff;
+  --gold: #ffd166;
+  --green: #2ecc71;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at top, #1e2842 0%, #0c0f18 70%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+  user-select: none;
+}
+main {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 16px 12px 32px;
+}
+h1 {
+  margin: 0 0 4px;
+  text-align: center;
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  letter-spacing: 0.05em;
+  background: linear-gradient(90deg, var(--pink), var(--gold), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sub {
+  text-align: center;
+  color: var(--muted);
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+}
+.panel {
+  background: rgba(24, 32, 50, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+}
+.inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+.left-label { color: var(--pink); }
+.right-label { color: var(--blue); }
+input, select {
+  width: 100%;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: #0d121d;
+  border: 1px solid #364563;
+  font: inherit;
+  margin-bottom: 8px;
+}
+input:focus, select:focus {
+  outline: 2px solid var(--blue);
+  border-color: transparent;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+}
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+#fightBtn {
+  flex: 2;
+  min-width: 160px;
+  color: #000;
+  font-size: 1.05rem;
+  background: linear-gradient(90deg, #ff5277, #ffd166, #40b5ff);
+  box-shadow: 0 4px 15px rgba(255, 102, 141, 0.3);
+}
+#resetBtn { background: #2c384e; color: var(--text); }
+.audio-btn {
+  background: #1e293b;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+}
+.audio-btn.active { color: var(--gold); border-color: var(--gold); }
+
+.arena {
+  margin-top: 14px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #0a0d14;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 900 / 420;
+}
+.hud {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.fighter-card {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #121824;
+  border: 1px solid var(--line);
+}
+.fighter-card strong {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+.trait-badge {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #222d42;
+  color: var(--gold);
+}
+.health-bg {
+  height: 12px;
+  background: #252e42;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.health {
+  height: 100%;
+  width: 100%;
+  transition: width 0.15s ease-out;
+  border-radius: 999px;
+}
+#hp1 { background: linear-gradient(90deg, #ff3366, #ff7597); }
+#hp2 { background: linear-gradient(90deg, #0099ff, #66c2ff); }
+
+.status {
+  min-height: 28px;
+  text-align: center;
+  padding: 10px 4px 0;
+  font-weight: 800;
+  color: var(--gold);
+  font-size: 1.1rem;
+}
+.log {
+  margin-top: 10px;
+  padding: 10px;
+  min-height: 48px;
+  max-height: 80px;
+  overflow-y: auto;
+  color: var(--muted);
+  background: #0d121d;
+  border: 1px solid #1e283c;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+@media(max-width: 600px) {
+  .inputs { grid-template-columns: 1fr; }
+  .hud { gap: 8px; }
+  main { padding: 10px 8px 24px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>⚔️ 文字大亂鬥！全面進化</h1>
+  <p class="sub">選擇獨特天賦能力，展開一場無與倫比的文字對決！</p>
+
+  <section class="panel">
+    <div class="inputs">
+      <div>
+        <label class="left-label" for="name1">🔴 角色一名稱</label>
+        <input id="name1" maxlength="10" value="伊吹" placeholder="角色一名稱">
+        <label class="left-label" for="trait1">天賦能力</label>
+        <select id="trait1">
+          <option value="berserker">⚔️ 狂暴 (攻擊+25%, 防禦-15%)</option>
+          <option value="guardian">🛡️ 鐵壁 (生命+30%, 受傷-20%)</option>
+          <option value="swift" selected>⚡ 疾風 (攻速+25%, 閃避+20%)</option>
+        </select>
+      </div>
+      <div>
+        <label class="right-label" for="name2">🔵 角色二名稱</label>
+        <input id="name2" maxlength="10" value="弗洛洛" placeholder="角色二名稱">
+        <label class="right-label" for="trait2">天賦能力</label>
+        <select id="trait2">
+          <option value="berserker" selected>⚔️ 狂暴 (攻擊+25%, 防禦-15%)</option>
+          <option value="guardian">🛡️ 鐵壁 (生命+30%, 受傷-20%)</option>
+          <option value="swift">⚡ 疾風 (攻速+25%, 閃避+20%)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button id="fightBtn">開始戰鬥！</button>
+      <button id="resetBtn" type="button">重置</button>
+      <button id="audioBtn" class="audio-btn active" type="button">🔊 音效: 開</button>
+      <button id="bgmBtn" class="audio-btn active" type="button">🎵 BGM: 開</button>
+    </div>
+  </section>
+
+  <section class="arena">
+    <canvas id="arena" width="900" height="420"></canvas>
+  </section>
+
+  <section class="hud">
+    <div class="fighter-card">
+      <strong>
+        <span id="hudName1">伊吹</span>
+        <span id="hudTrait1" class="trait-badge">⚡ 疾風</span>
+        <span id="hpText1">100 / 100</span>
+      </strong>
+      <div class="health-bg"><div id="hp1" class="health"></div></div>
+    </div>
+    <div class="fighter-card">
+      <strong>
+        <span id="hudName2">弗洛洛</span>
+        <span id="hudTrait2" class="trait-badge">⚔️ 狂暴</span>
+        <span id="hpText2">100 / 100</span>
+      </strong>
+      <div class="health-bg"><div id="hp2" class="health"></div></div>
+    </div>
+  </section>
+
+  <div id="status" class="status">準備好了嗎？按下「開始戰鬥！」</div>
+  <div id="log" class="log">戰鬥紀錄將在此呈現。</div>
+</main>
+
+<script>
+(() => {
+  // Web Audio API 合成器
+  class SoundManager {
+    constructor() {
+      this.ctx = null;
+      this.soundEnabled = true;
+      this.bgmEnabled = true;
+      this.bgmTimer = null;
+      this.step = 0;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    playHit(isCrit = false) {
+      if (!this.soundEnabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = isCrit ? 'sawtooth' : 'triangle';
+      osc.frequency.setValueAtTime(isCrit ? 180 : 120, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + (isCrit ? 0.25 : 0.15));
+
+      gain.gain.setValueAtTime(isCrit ? 0.4 : 0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + (isCrit ? 0.25 : 0.15));
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + (isCrit ? 0.25 : 0.15));
+    }
+
+    playDodge() {
+      if (!this.soundEnabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
+
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    }
+
+    playWin() {
+      if (!this.soundEnabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const notes = [261.6, 329.6, 392.0, 523.25];
+      notes.forEach((freq, idx) => {
+        const now = this.ctx.currentTime + idx * 0.12;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      });
+    }
+
+    startBGM() {
+      if (this.bgmTimer || !this.bgmEnabled) return;
+      this.init();
+      this.step = 0;
+      const notes = [110, 130.81, 146.83, 164.81, 110, 130.81, 196, 164.81];
+      
+      this.bgmTimer = setInterval(() => {
+        if (!this.bgmEnabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(notes[this.step % notes.length], now);
+
+        gain.gain.setValueAtTime(0.03, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+
+        this.step++;
+      }, 220);
+    }
+
+    stopBGM() {
+      if (this.bgmTimer) {
+        clearInterval(this.bgmTimer);
+        this.bgmTimer = null;
+      }
+    }
+  }
+
+  const sound = new SoundManager();
+
+  // Canvas DOM Setup
+  const canvas = document.getElementById('arena');
+  const ctx = canvas.getContext('2d');
+  const name1Input = document.getElementById('name1');
+  const name2Input = document.getElementById('name2');
+  const trait1Select = document.getElementById('trait1');
+  const trait2Select = document.getElementById('trait2');
+  const fightBtn = document.getElementById('fightBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const audioBtn = document.getElementById('audioBtn');
+  const bgmBtn = document.getElementById('bgmBtn');
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+
+  const hudName1 = document.getElementById('hudName1');
+  const hudName2 = document.getElementById('hudName2');
+  const hudTrait1 = document.getElementById('hudTrait1');
+  const hudTrait2 = document.getElementById('hudTrait2');
+  const hp1El = document.getElementById('hp1');
+  const hp2El = document.getElementById('hp2');
+  const hpText1 = document.getElementById('hpText1');
+  const hpText2 = document.getElementById('hpText2');
+
+  const W = canvas.width, H = canvas.height;
+  let fighters = [], particles = [], floatTexts = [];
+  let running = false, frameId = 0, lastTime = 0, shakeTime = 0, logLines = [];
+
+  const TRAITS = {
+    berserker: { name: '⚔️ 狂暴', hpMul: 1.0, atkMul: 1.25, defMul: 0.85, cdMul: 1.0, dodge: 0.05 },
+    guardian:  { name: '🛡️ 鐵壁', hpMul: 1.3, atkMul: 0.95, defMul: 1.20, cdMul: 1.1, dodge: 0.0 },
+    swift:     { name: '⚡ 疾風', hpMul: 0.95, atkMul: 1.0, defMul: 1.0, cdMul: 0.75, dodge: 0.20 }
+  };
+
+  function makeFighter(name, traitKey, side) {
+    const t = TRAITS[traitKey] || TRAITS.berserker;
+    const maxHp = Math.round(100 * t.hpMul);
+    return {
+      name,
+      side,
+      traitKey,
+      trait: t,
+      x: side === 0 ? 220 : 680,
+      y: 260,
+      hp: maxHp,
+      maxHp: maxHp,
+      cooldown: 0,
+      recoil: 0,
+      bob: Math.random() * 5
+    };
+  }
+
+  function resetGame() {
+    running = false;
+    sound.stopBGM();
+    if (frameId) cancelAnimationFrame(frameId);
+    frameId = 0;
+
+    const n1 = name1Input.value.trim() || '角色一';
+    const n2 = name2Input.value.trim() || '角色二';
+
+    fighters = [
+      makeFighter(n1, trait1Select.value, 0),
+      makeFighter(n2, trait2Select.value, 1)
+    ];
+
+    particles = [];
+    floatTexts = [];
+    shakeTime = 0;
+
+    logLines = ['準備完成！點擊「開始戰鬥！」展開對決。'];
+    updateHud();
+    statusEl.textContent = '準備就緒！';
+    render();
+    updateLog();
+    fightBtn.disabled = false;
+  }
+
+  function updateHud() {
+    const [a, b] = fighters;
+    if (!a || !b) return;
+
+    hudName1.textContent = a.name;
+    hudName2.textContent = b.name;
+    hudTrait1.textContent = a.trait.name;
+    hudTrait2.textContent = b.trait.name;
+
+    hp1El.style.width = `${Math.max(0, (a.hp / a.maxHp) * 100)}%`;
+    hp2El.style.width = `${Math.max(0, (b.hp / b.maxHp) * 100)}%`;
+
+    hpText1.textContent = `${Math.ceil(a.hp)} / ${a.maxHp}`;
+    hpText2.textContent = `${Math.ceil(b.hp)} / ${b.maxHp}`;
+  }
+
+  function updateLog() {
+    logEl.innerHTML = logLines.slice(-5).reverse().join('<br>');
+  }
+
+  function addParticles(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 60 + Math.random() * 200;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0.3 + Math.random() * 0.4,
+        maxLife: 0.7,
+        color,
+        size: 3 + Math.random() * 4
+      });
+    }
+  }
+
+  function addFloatText(x, y, text, color = '#ff5277') {
+    floatTexts.push({ x, y, text, color, life: 0.8, maxLife: 0.8 });
+  }
+
+  function attack(attacker, defender) {
+    // 閃避計算
+    if (Math.random() < defender.trait.dodge) {
+      addFloatText(defender.x, defender.y - 40, 'DODGE!', '#40b5ff');
+      sound.playDodge();
+      logLines.push(`💨 ${defender.name} 敏捷地閃避了 ${attacker.name} 的攻擊！`);
+      attacker.cooldown = (0.5 + Math.random() * 0.3) * attacker.trait.cdMul;
+      updateLog();
+      return;
+    }
+
+    // 暴擊率計算
+    const isCrit = Math.random() < 0.22;
+    let baseDamage = (8 + Math.random() * 10) * attacker.trait.atkMul;
+    if (isCrit) baseDamage *= 1.6;
+
+    // 防禦計算
+    const finalDamage = Math.max(2, Math.round(baseDamage / defender.trait.defMul));
+
+    defender.hp = Math.max(0, defender.hp - finalDamage);
+    defender.recoil = defender.side === 0 ? -1 : 1;
+    attacker.cooldown = (0.55 + Math.random() * 0.4) * attacker.trait.cdMul;
+
+    if (isCrit) shakeTime = 0.2;
+
+    const hitColor = attacker.side === 0 ? '#ff5277' : '#40b5ff';
+    addParticles((attacker.x + defender.x) / 2, 240, hitColor, isCrit ? 22 : 12);
+    addFloatText(defender.x, defender.y - 40, isCrit ? `CRIT -${finalDamage}!` : `-${finalDamage}`, isCrit ? '#ffd166' : hitColor);
+
+    sound.playHit(isCrit);
+
+    logLines.push(
+      isCrit 
+        ? `🔥 ${attacker.name} 發動擊潰重擊！造成 ${finalDamage} 點暴擊傷害！`
+        : `⚔️ ${attacker.name} 攻擊 ${defender.name}，造成 ${finalDamage} 點傷害。`
+    );
+
+    updateHud();
+    updateLog();
+
+    if (defender.hp <= 0) {
+      running = false;
+      sound.stopBGM();
+      sound.playWin();
+      statusEl.textContent = `🏆 ${attacker.name} 獲得了勝利！`;
+      logLines.push(`🎉 ${defender.name} 體力不支倒下，${attacker.name} 贏得榮譽！`);
+      updateLog();
+      fightBtn.disabled = false;
+    }
+  }
+
+  function startFight() {
+    sound.init();
+    if (running) return;
+    if (!fighters.length || fighters[0].hp <= 0 || fighters[1].hp <= 0) resetGame();
+
+    running = true;
+    logLines = [`⚔️ 對決開始！${fighters[0].name} VS ${fighters[1].name}`];
+    statusEl.textContent = '🔥 戰鬥進行中...';
+    fightBtn.disabled = true;
+    updateLog();
+
+    sound.startBGM();
+    lastTime = performance.now();
+    frameId = requestAnimationFrame(loop);
+  }
+
+  function loop(now) {
+    if (!running) return;
+    const dt = Math.min((now - lastTime) / 1000, 0.04);
+    lastTime = now;
+
+    const [a, b] = fighters;
+
+    for (const f of fighters) {
+      f.cooldown -= dt;
+      f.bob += dt * 5;
+    }
+
+    // 移動邏輯
+    const dist = b.x - a.x;
+    if (Math.abs(dist) > 140) {
+      const step = 110 * dt;
+      a.x += Math.sign(dist) * step;
+      b.x -= Math.sign(dist) * step;
+    } else {
+      if (a.cooldown <= 0) attack(a, b);
+      if (running && b.cooldown <= 0) attack(b, a);
+    }
+
+    // 受擊後退與邊界控制
+    for (const f of fighters) {
+      if (f.recoil !== 0) {
+        f.x += f.recoil * 160 * dt;
+        f.recoil *= Math.pow(0.02, dt);
+        if (Math.abs(f.recoil) < 0.02) f.recoil = 0;
+      }
+      f.x = Math.max(100, Math.min(W - 100, f.x));
+    }
+
+    // 更新特效粒子
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 220 * dt;
+    }
+
+    // 更新飄字
+    floatTexts = floatTexts.filter(t => t.life > 0);
+    for (const t of floatTexts) {
+      t.life -= dt;
+      t.y -= 35 * dt;
+    }
+
+    if (shakeTime > 0) shakeTime -= dt;
+
+    render();
+    if (running) frameId = requestAnimationFrame(loop);
+  }
+
+  function drawBackground() {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#151c2e');
+    sky.addColorStop(1, '#0a0d14');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    // 擂台地板
+    ctx.fillStyle = '#182030';
+    ctx.fillRect(0, 310, W, 110);
+    ctx.strokeStyle = '#2e3d5c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 310);
+    ctx.lineTo(W, 310);
+    ctx.stroke();
+  }
+
+  function roundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawFighter(f) {
+    const color = f.side === 0 ? '#ff5277' : '#40b5ff';
+    const bob = Math.sin(f.bob) * 4;
+
+    ctx.save();
+    ctx.translate(f.x, f.y + bob);
+
+    // 陰影
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(0, 60, 65, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // 角色外框卡片
+    ctx.fillStyle = f.side === 0 ? '#381824' : '#142a3b';
+    roundedRect(-65, -40, 130, 80, 16);
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    roundedRect(-65, -40, 130, 80, 16);
+    ctx.stroke();
+
+    // 文字名稱
+    ctx.fillStyle = color;
+    ctx.font = 'bold 26px system-ui, "Noto Sans TC"';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    let name = f.name;
+    while (ctx.measureText(name).width > 110 && name.length > 1) {
+      name = name.slice(0, -1) + '…';
+    }
+    ctx.fillText(name, 0, -5);
+
+    // 天賦標籤
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '12px system-ui';
+    ctx.fillText(f.trait.name, 0, 22);
+
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.save();
+    if (shakeTime > 0) {
+      const dx = (Math.random() - 0.5) * 8;
+      const dy = (Math.random() - 0.5) * 8;
+      ctx.translate(dx, dy);
+    }
+
+    drawBackground();
+
+    if (fighters.length) {
+      ctx.fillStyle = '#485878';
+      ctx.font = 'bold 36px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('VS', W / 2, 210);
+
+      for (const f of fighters) drawFighter(f);
+    }
+
+    // 繪製粒子
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 繪製飄浮傷害數字
+    for (const t of floatTexts) {
+      ctx.globalAlpha = Math.max(0, t.life / t.maxLife);
+      ctx.fillStyle = t.color;
+      ctx.font = 'bold 22px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(t.text, t.x, t.y);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+  }
+
+  // 事件監聽
+  fightBtn.addEventListener('click', startFight);
+  resetBtn.addEventListener('click', resetGame);
+  name1Input.addEventListener('input', resetGame);
+  name2Input.addEventListener('input', resetGame);
+  trait1Select.addEventListener('change', resetGame);
+  trait2Select.addEventListener('change', resetGame);
+
+  audioBtn.addEventListener('click', () => {
+    sound.soundEnabled = !sound.soundEnabled;
+    audioBtn.textContent = sound.soundEnabled ? '🔊 音效: 開' : '🔇 音效: 關';
+    audioBtn.classList.toggle('active', sound.soundEnabled);
+  });
+
+  bgmBtn.addEventListener('click', () => {
+    sound.bgmEnabled = !sound.bgmEnabled;
+    bgmBtn.textContent = sound.bgmEnabled ? '🎵 BGM: 開' : '🔇 BGM: 關';
+    bgmBtn.classList.toggle('active', sound.bgmEnabled);
+    if (!sound.bgmEnabled) sound.stopBGM();
+    else if (running) sound.startBGM();
+  });
+
+  resetGame();
+})();
+</script>
+</body>
+</html>
+```
